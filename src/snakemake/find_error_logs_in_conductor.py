@@ -30,7 +30,8 @@ def process_logfile(logfile):
                 current_error = False
 
 # Get the last snakemake logfile
-log_files = glob.glob(os.path.expanduser('~/projects/*/results/logs/snake_sbatch/*_conductor*.out'))
+log_files = glob.glob(os.path.expanduser('~/projects/*/results/logs/snake_sbatch/*conductor*.out'))
+log_files.extend(glob.glob(os.path.expanduser('~/projects/*/results/logs/snake_sbatch/*conductor*.log')))
 last_log = max(log_files, key=os.path.getmtime)
 
 # Process the logfile
