@@ -24,9 +24,10 @@ def process_logfile(logfile):
                     log_file = parts[2]
                     if not '/' in log_file:
                         log_file = parts[1]
-                    timestamp = datetime.datetime.fromtimestamp(os.path.getmtime(log_file))
-                    formatted_timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
-                    print(f"{error_rule} {formatted_timestamp} |||||\n  {log_file}")
+                    if ".snakemake" in log_file:
+                        timestamp = datetime.datetime.fromtimestamp(os.path.getmtime(log_file))
+                        formatted_timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                        print(f"{error_rule} {formatted_timestamp} |||||\n  {log_file}")
                 current_error = False
 
 # Get the last snakemake logfile
