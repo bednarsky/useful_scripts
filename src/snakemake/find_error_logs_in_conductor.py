@@ -7,7 +7,7 @@ from pathlib import Path
 def process_logfile(logfile):
     current_error = False
     error_rule = ""
-    categorized = {"Out Of Memory (OOM)": [], "Killed (not OOM)": [], "Other": []}
+    categorized = {"Out Of Memory (OOM)": [], "Killed (not OOM)": []}
     file_cache = {}
 
     with open(logfile, 'r') as file:
@@ -38,21 +38,34 @@ def process_logfile(logfile):
                                 formatted_timestamp = "N/A"
 
                             # Fast classification by scanning bytes once and using lowercase checks
-                            category = "Other"
                             try:
                                 with open(log_file, 'rb') as lf:
-                                    data_lower = lf.read().lower()
+                                    data_bytes = lf.read()
+                                    data_lower = data_bytes.lower()
                                     # Prioritize OOM detection
                                     if (b"out of memory" in data_lower) or (b"oom" in data_lower):
                                         category = "Out Of Memory (OOM)"
                                     elif b"killed" in data_lower:
                                         category = "Killed (not OOM)"
+                                    else:
+                                        # Find first line that contains the string "Error" (case-sensitive)
+                                        first_error_line = None
+                                        for raw_line in data_bytes.splitlines():
+                                            if b"Error" in raw_line:
+                                                try:
+                                                    first_error_line = raw_line.decode('utf-8', errors='ignore').strip()
+                                                except Exception:
+                                                    first_error_line = "Error"
+                                                break
+                                        category = first_error_line if first_error_line else "No Error line"
                             except Exception:
-                                category = "Other"
+                                category = "No Error line"
 
                             file_cache[log_file] = (category, formatted_timestamp)
 
                         entry = (error_rule, formatted_timestamp, log_file)
+                        if category not in categorized:
+                            categorized[category] = []
                         categorized[category].append(entry)
                 current_error = False
 
@@ -60,20 +73,22 @@ def process_logfile(logfile):
 
 
 def print_summary_and_sections(categorized):
-    oom_count = len(categorized["Out Of Memory (OOM)"])
-    killed_count = len(categorized["Killed (not OOM)"])
-    other_count = len(categorized["Other"])
+    # Build ordered list of categories: OOM, Killed, then others by count desc then name
+    counts = {k: len(v) for k, v in categorized.items()}
+    categories = [c for c in ["Out Of Memory (OOM)", "Killed (not OOM)"] if c in categorized]
+    other_categories = [c for c in categorized.keys() if c not in categories]
+    other_categories.sort(key=lambda x: (-counts.get(x, 0), x))
+    ordered_categories = categories + other_categories
 
-    category_col_width = max(len("Category"), len("Out Of Memory (OOM)"), len("Killed (not OOM)"), len("Other"))
-    count_col_width = max(len("Count"), len(str(oom_count)), len(str(killed_count)), len(str(other_count)))
+    category_col_width = max(len("Category"), *(len(c) for c in ordered_categories))
+    count_col_width = max(len("Count"), *(len(str(counts[c])) for c in ordered_categories))
     separator = "+" + "-" * (category_col_width + 2) + "+" + "-" * (count_col_width + 2) + "+"
 
     print(separator)
     print("| " + "Category".ljust(category_col_width) + " | " + "Count".rjust(count_col_width) + " |")
     print(separator)
-    print("| " + "Out Of Memory (OOM)".ljust(category_col_width) + " | " + str(oom_count).rjust(count_col_width) + " |")
-    print("| " + "Killed (not OOM)".ljust(category_col_width) + " | " + str(killed_count).rjust(count_col_width) + " |")
-    print("| " + "Other".ljust(category_col_width) + " | " + str(other_count).rjust(count_col_width) + " |")
+    for cat in ordered_categories:
+        print("| " + cat.ljust(category_col_width) + " | " + str(counts[cat]).rjust(count_col_width) + " |")
     print(separator)
     print()
 
@@ -84,11 +99,9 @@ def print_summary_and_sections(categorized):
             print(f"{error_rule} {formatted_timestamp} |||||")
             print(f"  {log_file}")
 
-    print_section("Out Of Memory (OOM)", categorized["Out Of Memory (OOM)"])
-    print()
-    print_section("Killed (not OOM)", categorized["Killed (not OOM)"])
-    print()
-    print_section("Other", categorized["Other"])
+    for cat in ordered_categories:
+        print_section(cat, categorized[cat])
+        print()
 
 
 # Get the last snakemake logfile
