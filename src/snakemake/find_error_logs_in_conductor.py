@@ -43,7 +43,7 @@ def process_logfile(logfile):
                                     data_bytes = lf.read()
                                     data_lower = data_bytes.lower()
                                     # Prioritize OOM detection
-                                    if (b"out of memory" in data_lower) or (b"oom" in data_lower):
+                                    if (b"out of memory" in data_lower) or (b" oom" in data_lower):
                                         category = "Out Of Memory (OOM)"
                                     elif b"killed" in data_lower:
                                         category = "Killed (not OOM)"
@@ -58,6 +58,9 @@ def process_logfile(logfile):
                                                     first_error_line = "Error"
                                                 break
                                         category = first_error_line if first_error_line else "No Error line"
+                                        # shorten to only 90 characters to fit in the table
+                                        category = category[:90]
+                                        
                             except Exception:
                                 category = "No Error line"
 
