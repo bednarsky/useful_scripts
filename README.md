@@ -3,7 +3,7 @@
 ## 🐍 Snakemake 🐍 
 I am really happy with my log parsing setup for running snakemake jobs. You might have your own setup, but I wanted to share it anyways, maybe something useful for someone - maybe I get nice feedback how to make it even better . This works well if you
 - use [conductor jobs](https://github.com/epigen/cemm.slurm.sm) (i.e., don't run snakemake interactively but via sbatch - not supposed to be like this but really useful imo)
-- always have the same structure, in my case, all conductor logs are named ~/projects/*/results/logs/snake_sbatch/*conductor*.out
+- always have the same structure, in my case, all conductor logs are named `~/projects/*/results/logs/snake_sbatch/*conductor*.out`
 
 Here, my useful aliases: 
 - find and show the errors in an easily parseable manner (this is my favourite) 
