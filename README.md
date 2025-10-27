@@ -1,6 +1,7 @@
 # ✨ Miscellanous useful things ✨
 
 ## 🐍 Snakemake 🐍 
+### 📝 Log/progress parsing setup 📝
 I am really happy with my log parsing setup for running snakemake jobs. You might have your own setup, but I wanted to share it anyways, maybe something useful for someone - maybe I get nice feedback how to make it even better . This works well if you
 - use [conductor jobs](https://github.com/epigen/cemm.slurm.sm) (i.e., don't run snakemake interactively but via sbatch - not supposed to be like this but really useful imo)
 - always have the same structure, in my case, all conductor logs are named `~/projects/*/results/logs/snake_sbatch/*conductor*.out`
@@ -59,3 +60,41 @@ Here, my useful aliases:
   ```bash
   alias ccounterr='while true; do LASTLOG=$(ls -Atd ~/projects/*/results/logs/snake_sbatch/*conductor*.{out,log} | head -1); echo ........................................................; ls -l "$LASTLOG" | awk '\''{print $6, $7, $8, $9}'\''; grep "Error" "$LASTLOG" | sort | uniq -c; sleep 5; done'
   ```
+
+### 🧑‍💻 🤝 🐍 Interactive coding with Snakemake 🧑‍💻 🤝 🐍
+This relates to code in `src/snakemake/interactive_snakemake_object.py`
+
+My aim here is to work interactively, while developing a workflow, in two ways: 
+1. When writing a script for the first time, I want to already write it in a way that makes it easy to adapt the script to be run in the snakemake workflow. 
+2. Once I think the script is working, and it is run by the workflow already once, but I find out I want to change something, I want to be able to start a session that looks as if the script is just now being run by snakemake, i.e., there is a object in memory that is called `snakemake` that contains the input, output, wildcards, etc.
+
+Here is how I do it: 
+- During development, I use the `SnakelikeObject` class to work interactively with the snakemake object. It takes a nested dictionary, where first keys are `input`, `output`, `wildcards`, etc., and second keys are the names of the input/output files/directories with values being the paths to the files/directories.
+```python
+snakemake = SnakelikeObject({
+  "input": {
+    "adata_superset": "/path/to/adata_superset.h5ad",
+    "marker_genes": "/path/to/marker_genes.csv"
+  },
+  "output": {
+    "fig1_marker_plot_selected_genes": "/path/to/fig1_marker_plot_selected_genes.png"
+  },
+  "wildcards": {
+    "cell_type": "L4_RNA",
+    "tss_distance": "1000_500"
+  },
+})
+```
+
+- You can then use this object just as snakemake would use it, accessing attributes like this `snakemake.input['adata_superset']` etc. 
+- Once you are ready to run via snakemake, this structure is easy to transfer into a rule. 
+- At the top of your script, save the object that snakemake injects into your environment as a json file, so you can load it for interactive coding later.
+```python
+# save snakemake object content as json
+snakemake_object_to_json(snakemake)
+```
+
+- Once snakemake was run, if you want to code interactively, you can load the snakemake object from the json file.
+```python
+snakemake = read_json_into_smk_obj(PROJECT_ROOT / 'results/smk_objects/rule_name/wildcards.json')
+```
