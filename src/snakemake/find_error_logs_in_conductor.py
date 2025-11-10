@@ -47,6 +47,10 @@ def process_logfile(logfile):
                                         category = "Out Of Memory (OOM)"
                                     elif b"killed" in data_lower:
                                         category = "Killed (not OOM)"
+                                    elif b"due to time limit" in data_lower:
+                                        category = "time limit"
+                                    elif b"cancelled" in data_lower:
+                                        category = "cancelled"
                                     else:
                                         # Find first line that contains the string "Error" (case-sensitive)
                                         first_error_line = None
