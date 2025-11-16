@@ -55,7 +55,7 @@ def process_logfile(logfile):
                                         # Find first line that contains the string "Error" (case-sensitive)
                                         first_error_line = None
                                         for raw_line in data_bytes.splitlines():
-                                            if b"Error" in raw_line:
+                                            if b"Error" in raw_line and not b"    raise" in raw_line:
                                                 try:
                                                     first_error_line = raw_line.decode('utf-8', errors='ignore').strip()
                                                 except Exception:
